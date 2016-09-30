@@ -13,7 +13,7 @@ var highlightFeature = function(e){
 geodash.controllers["controller_map_map"] = function(
   $rootScope, $scope, $element, $controller,
   $http, $q,
-  $compile, $interpolate, $templateCache,
+  $compile, $interpolate, $templateCache, $timeout,
   state, map_config, live) {
   //////////////////////////////////////
   angular.extend(this, $controller("GeoDashControllerBase", {$element: $element, $scope: $scope}));
