@@ -11,10 +11,13 @@ var highlightFeature = function(e){
 };
 
 geodash.controllers["controller_map_map"] = function(
-  $rootScope, $scope, $element, $http, $q,
+  $rootScope, $scope, $element, $controller,
+  $http, $q,
   $compile, $interpolate, $templateCache,
   state, map_config, live) {
   //////////////////////////////////////
+  angular.extend(this, $controller("GeoDashControllerBase", {$element: $element, $scope: $scope}));
+
   $scope.processEvent = function(event, args)
   {
     var c = $.grep(geodash.meta.controllers, function(x, i){
@@ -40,18 +43,28 @@ geodash.controllers["controller_map_map"] = function(
   //////////////////////////////////////
   var listeners =
   {
-    click: function(e) {
-      var m = live["map"];
+    singleclick: function(e) {
+      var m = geodash.var.map;
       var v = m.getView();
-      var c = v.getCenter();
+      var c = ol.proj.toLonLat(e.coordinate, v.getProjection());
       var delta = {
-        "lat": c[1],
-        "lon": c[0]
+        "location": {
+          "lat": c[1],
+          "lon": c[0]
+        },
+        "pixel": {
+          "x": e.pixel[0],
+          "y": e.pixel[1]
+        }
       };
       geodash.api.intend("clickedOnMap", delta, $scope);
+      if(geodash.mapping_library == "ol3")
+      {
+        $("#popup").popover('destroy');
+      }
     },
     zoomend: function(e){
-      var m = live["map"];
+      var m = geodash.var.map;
       var v = m.getView();
       var c = v.getCenter();
       var delta = {
@@ -59,26 +72,34 @@ geodash.controllers["controller_map_map"] = function(
         "z": v.getZoom()
       };
       geodash.api.intend("viewChanged", delta, $scope);
+      if(geodash.mapping_library == "ol3")
+      {
+        $("#popup").popover('destroy');
+      }
     },
     dragend: function(e){
-      var m = live["map"];
+      var m = geodash.var.map;
       var v = m.getView();
       var c = v.getCenter();
       var delta = {
         "extent": v.calculateExtent(m.getSize()).join(","),
-        "lat": c[1],
-        "lon": c[0]
+        "location": {
+          "lat": c[1],
+          "lon": c[0]
+        }
       };
       geodash.api.intend("viewChanged", delta, $scope);
     },
     moveend: function(e){
-      var m = live["map"];
+      var m = geodash.var.map;
       var v = m.getView();
       var c = v.getCenter();
       var delta = {
         "extent": v.calculateExtent(m.getSize()).join(","),
-        "lat": c.lat,
-        "lon": c.lng
+        "location": {
+          "lat": c[1],
+          "lon": c[0]
+        },
       };
       geodash.api.intend("viewChanged", delta, $scope);
     }
@@ -87,7 +108,7 @@ geodash.controllers["controller_map_map"] = function(
   // The Map
   var hasViewOverride = hasHashValue(["latitude", "lat", "longitude", "lon", "lng", "zoom", "z"]);
   var view = state["view"];
-  live["map"] = geodash.init.map_ol3({
+  geodash.var.map = geodash.init.map_ol3({
     "attributionControl": extract(expand("controls.attribution"), map_config, true),
     "zoomControl": extract(expand("controls.zoom"), map_config, true),
     "minZoom": extract(expand("view.minZoom"), map_config, 0),
@@ -99,99 +120,130 @@ geodash.controllers["controller_map_map"] = function(
   });
   //////////////////////////////////////
   // Base Layers
-  var baseLayers = geodash.layers.init_baselayers_ol3(live["map"], map_config["baselayers"]);
-  $.extend(live["baselayers"], baseLayers);
+  var baseLayers = geodash.layers.init_baselayers_ol3(geodash.var.map, map_config["baselayers"]);
+  $.extend(geodash.var.baselayers, baseLayers);
   // Load Default/Initial Base Layer
   var baseLayerID = map_config["view"]["baselayer"] || map_config["baselayers"][0].id;
-  live["map"].addLayer(live["baselayers"][baseLayerID]);
-  //live["baselayers"][baseLayerID].addTo(live["map"]);
+  geodash.var.map.addLayer(geodash.var.baselayers[baseLayerID]);
   geodash.api.intend("viewChanged", {'baselayer': baseLayerID}, $scope);
   geodash.api.intend("layerLoaded", {'type':'baselayer', 'layer': baseLayerID}, $scope);
   //////////////////////////////////////
   // Feature Layers
-  if("featurelayers" in map_config && map_config.featurelayers != undefined)
+  if(angular.isArray(extract("featurelayers", map_config)))
   {
-    $.each(map_config.featurelayers, function(i, layerConfig){
-      geodash.layers.init_featurelayer(layerConfig.id, layerConfig, $scope, live, map_config);
-    });
+    for(var i = 0; i < map_config.featurelayers.length; i++)
+    {
+      var fl = map_config.featurelayers[i];
+      geodash.layers.init_featurelayer(fl.id, fl, $scope, live, map_config, state);
+    }
   }
-  //////////////////////////////////////
-  // Sidebar Toggle
-  /*$("#geodash-map-sidebar-toggle-right").click(function (){
-    $(this).toggleClass("sidebar-open sidebar-right-open");
-    $("#geodash-sidebar-right, #geodash-map").toggleClass("sidebar-open sidebar-right-open");
-    setTimeout(function(){
-      live["map"].invalidateSize({
-        animate: true,
-        pan: false
-      });
-    },2000);
-  });*/
-  /*$scope.on$('toggleComponent', function (event, args){
-    console.log("Event: ", event);
-    console.log("Args: ", args);
-    var component = args.component;
-    var position = args.position;
-    var classes = component+"-open "+component+"-"+position+"-open";
-    $(args.selector).toggleClass(classes);
-    setTimeout(function(){
-      live["map"].invalidateSize({
-        animate: true,
-        pan: false
-      });
-    },2000);
-  });*/
+  $timeout(function(){
+    var loadedFeatureLayers = $.grep(state.view.featurelayers, function(layerID){
+      var y = extract(layerID, geodash.var.featurelayers);
+      return angular.isDefined(y) && (y instanceof ol.layer.Vector);
+    });
+    var fitLayers = $.map(loadedFeatureLayers, function(layerID){ return geodash.var.featurelayers[layerID]; });
+    var newExtent = ol.extent.createEmpty();
+    fitLayers.forEach(function(layer){ ol.extent.extend(newExtent, layer.getSource().getExtent()); });
+    var v = geodash.var.map.getView();
+    geodash.var.map.beforeRender(ol.animation.pan({ duration: 500, source: v.getCenter() }));
+    v.fit(newExtent, geodash.var.map.getSize());
+  }, 2000);
   //////////////////////////////////////
   $scope.$on("refreshMap", function(event, args) {
     // Forces Refresh
     console.log("Refreshing map...");
     // Update Visibility
     var visibleBaseLayer = args.state.view.baselayer;
-    $.each(live["baselayers"], function(id, layer) {
+    var currentLayers = geodash.mapping_library == "ol3" ? geodash.var.map.getLayers().getArray() : undefined;
+    $.each(geodash.var.baselayers, function(id, layer) {
       var visible = id == visibleBaseLayer;
-      if(live["map"].hasLayer(layer) && !visible)
+      if(geodash.mapping_library == "ol3")
       {
-        live["map"].removeLayer(layer)
+        if($.inArray(layer, currentLayers) != -1 && !visible)
+        {
+          geodash.var.map.removeLayer(layer)
+        }
+        else if($.inArray(layer, currentLayers) == -1 && visible)
+        {
+          geodash.var.map.addLayer(layer)
+        }
       }
-      else if((! live["map"].hasLayer(layer)) && visible)
+      else
       {
-        live["map"].addLayer(layer)
+        if(geodash.var.map.hasLayer(layer) && !visible)
+        {
+          geodash.var.map.removeLayer(layer)
+        }
+        else if((! geodash.var.map.hasLayer(layer)) && visible)
+        {
+          geodash.var.map.addLayer(layer)
+        }
       }
     });
     var visibleFeatureLayers = args.state.view.featurelayers;
-    $.each(live["featurelayers"], function(id, layer) {
+    $.each(geodash.var.featurelayers, function(id, layer) {
       var visible = $.inArray(id, visibleFeatureLayers) != -1;
-      if(live["map"].hasLayer(layer) && !visible)
+      if(geodash.mapping_library == "ol3")
       {
-        live["map"].removeLayer(layer)
+        if($.inArray(layer, currentLayers) != -1 && !visible)
+        {
+          geodash.var.map.removeLayer(layer)
+        }
+        else if($.inArray(layer, currentLayers) == -1 && visible)
+        {
+          geodash.var.map.addLayer(layer)
+        }
       }
-      else if((! live["map"].hasLayer(layer)) && visible)
+      else
       {
-        live["map"].addLayer(layer)
+        if(geodash.var.map.hasLayer(layer) && !visible)
+        {
+          geodash.var.map.removeLayer(layer)
+        }
+        else if((! geodash.var.map.hasLayer(layer)) && visible)
+        {
+          geodash.var.map.addLayer(layer)
+        }
       }
     });
     // Update Render Order
-    var renderLayers = $.grep(layersAsArray(live["featurelayers"]), function(layer){ return $.inArray(layer["id"], visibleFeatureLayers) != -1;});
+    var renderLayers = $.grep(layersAsArray(geodash.var.featurelayers), function(layer){ return $.inArray(layer["id"], visibleFeatureLayers) != -1;});
     var renderLayersSorted = sortLayers($.map(renderLayers, function(layer, i){return layer["layer"];}),true);
-    var baseLayersAsArray = $.map(live["baselayers"], function(layer, id){return {'id':id,'layer':layer};});
+    var baseLayersAsArray = $.map(geodash.var.baselayers, function(layer, id){return {'id':id,'layer':layer};});
     var baseLayers = $.map(
-      $.grep(layersAsArray(live["baselayers"]), function(layer){return layer["id"] == visibleBaseLayer;}),
+      $.grep(layersAsArray(geodash.var.baselayers), function(layer){return layer["id"] == visibleBaseLayer;}),
       function(layer, i){return layer["layer"];});
     updateRenderOrder(baseLayers.concat(renderLayersSorted));
     // Force Refresh
-    setTimeout(function(){live["map"]._onResize()}, 0);
+    if(geodash.mapping_library == "ol3")
+    {
+      setTimeout(function(){
+
+        var m = geodash.var.map;
+        m.renderer_.dispose();
+        m.renderer_ = new ol.renderer.canvas.Map(m.viewport_, m);
+        //m.updateSize();
+        m.renderSync();
+
+      }, 0);
+    }
+    else if(geodash.mapping_library == "leaflet")
+    {
+      setTimeout(function(){ geodash.var.map._onResize(); }, 0);
+    }
   });
 
   $scope.$on("changeView", function(event, args) {
     console.log("Refreshing map...");
     if(args["layer"] != undefined)
     {
-      live["map"].fitBounds(live["featurelayers"][args["layer"]].getBounds());
+      geodash.var.map.fitBounds(geodash.var.featurelayers[args["layer"]].getBounds());
     }
   });
 
   $scope.$on("openPopup", function(event, args) {
-    console.log("Refreshing map...");
+    console.log("Opening popup...");
     if(
       args["featureLayer"] != undefined &&
       args["feature"] != undefined &&
@@ -202,7 +254,7 @@ geodash.controllers["controller_map_map"] = function(
         args["featureLayer"],
         args["feature"],
         args["location"],
-        live["map"],
+        geodash.var.map,
         angular.element("#geodash-main").scope().state);
     }
   });

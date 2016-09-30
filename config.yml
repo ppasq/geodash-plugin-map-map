@@ -1,4 +1,5 @@
 ---
+name: "geodash-plugin-map-map"
 controllers:
   - name: controller_map_map
     path: controller_map_map.js
