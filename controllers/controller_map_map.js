@@ -146,9 +146,9 @@ geodash.controllers["controller_map_map"] = function(
     var newExtent = ol.extent.createEmpty();
     fitLayers.forEach(function(layer){ ol.extent.extend(newExtent, layer.getSource().getExtent()); });
     var v = geodash.var.map.getView();
-    geodash.var.map.beforeRender(ol.animation.pan({ duration: 500, source: v.getCenter() }));
-    v.fit(newExtent, geodash.var.map.getSize());
-  }, 2000);
+    /*geodash.var.map.beforeRender(ol.animation.pan({ duration: 500, source: v.getCenter() }));
+    v.fit(newExtent, geodash.var.map.getSize());*/
+  }, 4000);
   //////////////////////////////////////
   $scope.$on("refreshMap", function(event, args) {
     // Forces Refresh
@@ -238,7 +238,18 @@ geodash.controllers["controller_map_map"] = function(
     console.log("Refreshing map...");
     if(args["layer"] != undefined)
     {
-      geodash.var.map.fitBounds(geodash.var.featurelayers[args["layer"]].getBounds());
+      if(geodash.mapping_library == "ol3")
+      {
+        var layer = geodash.var.featurelayers[args["layer"]];
+        var v = geodash.var.map.getView();
+        geodash.var.map.beforeRender(ol.animation.pan({ duration: 1000, source: v.getCenter() }));
+        v.fit(layer.getSource().getExtent(), geodash.var.map.getSize());
+      }
+      else if(geodash.mapping_library == "leaflet")
+      {
+        geodash.var.map.fitBounds(geodash.var.featurelayers[args["layer"]].getBounds());
+      }
+
     }
   });
 
