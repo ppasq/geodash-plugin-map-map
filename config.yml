@@ -1,12 +1,14 @@
 ---
 name: "geodash-plugin-map-map"
 controllers:
-  - name: controller_map_map
-    path: controller_map_map.js
+  - name: GeoDashControllerMapMap
+    path: GeoDashControllerMapMap.js
     handlers:
       - event: toggleComponent
         handler: toggleComponent
-directives: []
-templates: []
+directives:
+  - geodashMapMap.js
+templates:
+  - map_map.tpl.html
 less:
-  - main_map.less
+  - map_map.less
