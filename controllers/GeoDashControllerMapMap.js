@@ -167,7 +167,8 @@ geodash.controllers.GeoDashControllerMapMap = function(
         args["feature"],
         args["location"],
         geodash.var.map,
-        angular.element("#geodash-main").scope().state);
+        geodash.util.getScope("#geodash-main").state
+      );
     }
   });
 };
