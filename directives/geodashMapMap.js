@@ -4,6 +4,7 @@ geodash.directives.geodashMapMap = function(){
     restrict: 'EA',
     replace: true,
     scope: {},
+    templateUrl: 'map_map.tpl.html',
     link: function ($scope, element, attrs, controllers)
     {
       var dashboard = $scope.dashboard;
