@@ -6,9 +6,9 @@ geodash.controllers.GeoDashControllerMapMap = function(
   angular.extend(this, $controller("GeoDashControllerBase", {$element: $element, $scope: $scope}));
 
   var mainScope = $element.parents(".geodash-dashboard:first").isolateScope();
-  $scope.dashboard = mainScope.dashboard;
-  $scope.dashboard_flat = mainScope.dashboard_flat;
-  $scope.state = mainScope.state;
+  $scope.dashboard = geodash.util.deepCopy(mainScope.dashboard);
+  $scope.dashboard_flat = geodash.util.deepCopy(mainScope.dashboard_flat);
+  $scope.state = geodash.util.deepCopy(mainScope.state);
 
   $scope.processEvent = function(event, args)
   {
