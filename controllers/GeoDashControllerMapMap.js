@@ -146,6 +146,29 @@ geodash.controllers.GeoDashControllerMapMap = function(
       if(angular.isDefined(lat) && angular.isDefined(lon))
       {
         var v = geodash.var.map.getView();
+
+        var animationNames = extract("animations", args);
+        if(Array.isArray(animationNames))
+        {
+          var animations = [];
+          var duration = 2000;
+          var start = +new Date();
+          for(var i = 0; i < animationNames.length; i++)
+          {
+            var animationFn = extract(animationNames[i], geodash.animations);
+            animations.push(animationFn({
+              "duration": duration,
+              "start": start,
+              "source": v.getCenter(),
+              "resolution": 4 * v.getResolution()
+            }));
+          }
+          if(angular.isDefined(animations))
+          {
+            geodash.var.map.beforeRender.apply(geodash.var.map, animations);
+          }
+        }
+
         v.setCenter(ol.proj.transform([lon, lat], extract("projection", args, "EPSG:4326"), v.getProjection()));
         if(angular.isDefined(zoom))
         {

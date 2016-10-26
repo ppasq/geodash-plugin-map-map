@@ -76,13 +76,16 @@ geodash.directives.geodashMapMap = function(){
       });
       //////////////////////////////////////
       // Base Layers
-      var baseLayers = geodash.layers.init_baselayers_ol3(geodash.var.map, dashboard["baselayers"]);
-      $.extend(geodash.var.baselayers, baseLayers);
-      // Load Default/Initial Base Layer
-      var baseLayerID = dashboard["view"]["baselayer"] || dashboard["baselayers"][0].id;
-      geodash.var.map.addLayer(geodash.var.baselayers[baseLayerID]);
-      geodash.api.intend("viewChanged", {'baselayer': baseLayerID}, $scope);
-      geodash.api.intend("layerLoaded", {'type':'baselayer', 'layer': baseLayerID}, $scope);
+      if(extract("baselayers", dashboard, []).length > 0)
+      {
+        var baseLayers = geodash.layers.init_baselayers_ol3(geodash.var.map, dashboard["baselayers"]);
+        $.extend(geodash.var.baselayers, baseLayers);
+        // Load Default/Initial Base Layer
+        var baseLayerID = dashboard["view"]["baselayer"] || dashboard["baselayers"][0].id;
+        geodash.var.map.addLayer(geodash.var.baselayers[baseLayerID]);
+        geodash.api.intend("viewChanged", {'baselayer': baseLayerID}, $scope);
+        geodash.api.intend("layerLoaded", {'type':'baselayer', 'layer': baseLayerID}, $scope);
+      }
       //////////////////////////////////////
       // Feature Layers
       if(angular.isArray(extract("featurelayers", dashboard)))
