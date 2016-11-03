@@ -8,6 +8,7 @@ geodash.controllers.GeoDashControllerMapMap = function(
   var mainScope = $element.parents(".geodash-dashboard:first").isolateScope();
   $scope.dashboard = geodash.util.deepCopy(mainScope.dashboard);
   $scope.dashboard_flat = geodash.util.deepCopy(mainScope.dashboard_flat);
+  $scope.initial_state = geodash.util.deepCopy(mainScope.state);
   $scope.state = geodash.util.deepCopy(mainScope.state);
 
   $scope.processEvent = function(event, args)
@@ -138,6 +139,24 @@ geodash.controllers.GeoDashControllerMapMap = function(
         geodash.var.map.fitBounds(geodash.var.featurelayers[args["layer"]].getBounds());
       }
     }
+    else if(angular.isDefined(extract("extent", args)))
+    {
+      var extent = extract("extent", args);
+      if(angular.isString(extent) && extent == "initial")
+      {
+        extent = extract("initial_state.view.extent", event.currentScope);
+      }
+      setTimeout(function(){
+        var m = geodash.var.map;
+        var v = m.getView();
+        var newExtent = ol.proj.transformExtent(
+          extent,
+          "EPSG:4326",
+          v.getProjection()
+        );
+        v.fit(newExtent, m.getSize());
+      }, 0);
+    }
     else
     {
       var lat = geodash.normalize.float(extract("lat", args));
@@ -156,12 +175,15 @@ geodash.controllers.GeoDashControllerMapMap = function(
           for(var i = 0; i < animationNames.length; i++)
           {
             var animationFn = extract(animationNames[i], geodash.animations);
-            animations.push(animationFn({
-              "duration": duration,
-              "start": start,
-              "source": v.getCenter(),
-              "resolution": 4 * v.getResolution()
-            }));
+            if(angular.isDefined(animationFn))
+            {
+              animations.push(animationFn({
+                "duration": duration,
+                "start": start,
+                "source": v.getCenter(),
+                "resolution": 4 * v.getResolution()
+              }));
+            }
           }
           if(angular.isDefined(animations))
           {

@@ -78,8 +78,8 @@ geodash.directives.geodashMapMap = function(){
       // Base Layers
       if(extract("baselayers", dashboard, []).length > 0)
       {
-        var baseLayers = geodash.layers.init_baselayers_ol3(geodash.var.map, dashboard["baselayers"]);
-        $.extend(geodash.var.baselayers, baseLayers);
+        var baselayers = geodash.layers.init_baselayers_ol3(geodash.var.map, dashboard["baselayers"]);
+        $.extend(geodash.var.baselayers, baselayers);
         // Load Default/Initial Base Layer
         var baseLayerID = dashboard["view"]["baselayer"] || dashboard["baselayers"][0].id;
         geodash.var.map.addLayer(geodash.var.baselayers[baseLayerID]);
