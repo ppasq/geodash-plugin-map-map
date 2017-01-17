@@ -34,35 +34,42 @@ geodash.directives.geodashMapMap = function(){
             }
           },
           moveend: function(e){
-            var m = geodash.var.map;
-            var v = m.getView();
-            var c = v.getCenter();
-            var delta = {
-              "extent": v.calculateExtent(m.getSize()).join(","),
-              "location": {
-                "lat": c[1],
-                "lon": c[0]
-              },
-            };
-            geodash.api.intend("viewChanged", delta, $scope);
+            if(! geodash.var.map.getView().getAnimating())
+            {
+              console.log("In moveend, going to trigger viewChanged.");
+              var m = geodash.var.map;
+              var v = m.getView();
+              var c = v.getCenter();
+              var delta = {
+                "extent": v.calculateExtent(m.getSize()),//"extent": v.calculateExtent(m.getSize()).join(","),
+                "location": {
+                  "lat": c[1],
+                  "lon": c[0]
+                },
+              };
+              geodash.api.intend("viewChanged", delta, $scope);
+            }
           }
         },
         "view": {
           "change:resolution": function(e){
-            var m = geodash.var.map;
-            var v = m.getView();
-            var c = v.getCenter();
-            var delta = {
-              "extent": v.calculateExtent(m.getSize()).join(","),
-              "z": v.getZoom()
-            };
-
-            if(geodash.mapping_library == "ol3")
+            if(! geodash.var.map.getView().getAnimating())
             {
-              $("#popup").popover('destroy');
-            }
+              console.log("In change:resolution, going to trigger viewChanged.");
+              var m = geodash.var.map;
+              var v = m.getView();
+              var c = v.getCenter();
+              var delta = {
+                "extent": v.calculateExtent(m.getSize()),
+                "z": v.getZoom()
+              };
 
-            geodash.api.intend("viewChanged", delta, $scope);
+              if(geodash.mapping_library == "ol3")
+              {
+                $("#popup").popover('destroy');
+              }
+              geodash.api.intend("viewChanged", delta, $scope);
+            }
           }
         }
       };
@@ -74,6 +81,8 @@ geodash.directives.geodashMapMap = function(){
         "dashboard": dashboard,
         "listeners": listeners
       });
+      // Initialize History
+      //setTimeout(function(){geodash.api.intend("viewChanged", delta, $scope);}, 0);
       //////////////////////////////////////
       // Base Layers
       if(extract("baselayers", dashboard, []).length > 0)
