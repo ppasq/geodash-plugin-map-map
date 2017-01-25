@@ -162,6 +162,7 @@ geodash.controllers.GeoDashControllerMapMap = function(
       {
         geodash.navigate.location({
           "animate": extract("animate", args),
+          "duration": extract("duration", args),
           "extent": geodash.normalize.extent(extent, {
             "sourceProjection": "EPSG:4326",
             "targetProjection": geodash.var.map.getView().getProjection().getCode()
@@ -173,6 +174,7 @@ geodash.controllers.GeoDashControllerMapMap = function(
     {
       geodash.navigate.location({
         "animate": extract("animate", args),
+        "duration": extract("duration", args),
         "lat": extract("lat", args),
         "lon": extract("lon", args),
         "zoom": extract("zoom", args)

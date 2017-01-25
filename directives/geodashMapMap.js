@@ -40,12 +40,11 @@ geodash.directives.geodashMapMap = function(){
               var m = geodash.var.map;
               var v = m.getView();
               var c = v.getCenter();
+              var lonlat = ol.proj.transform(c, v.getProjection(), "EPSG:4326");
               var delta = {
-                "extent": v.calculateExtent(m.getSize()),//"extent": v.calculateExtent(m.getSize()).join(","),
-                "location": {
-                  "lat": c[1],
-                  "lon": c[0]
-                },
+                "extent": v.calculateExtent(m.getSize()),
+                "lon": lonlat[0],
+                "lat": lonlat[1]
               };
               geodash.api.intend("viewChanged", delta, $scope);
             }
@@ -79,6 +78,7 @@ geodash.directives.geodashMapMap = function(){
       geodash.var.map = geodash.init.map_ol3({
         "id": element.attr("id"),
         "dashboard": dashboard,
+        "state": state,
         "listeners": listeners
       });
       // Initialize History
@@ -128,6 +128,7 @@ geodash.directives.geodashMapMap = function(){
       }
       else
       {
+        geodash.api.intend("geodash:maploaded", {}, $scope);
         /*setTimeout(function(){
           var loadedFeatureLayers = $.grep(state.view.featurelayers, function(layerID){
             var y = extract(layerID, geodash.var.featurelayers);
