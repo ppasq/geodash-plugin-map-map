@@ -47,6 +47,20 @@ geodash.directives.geodashMapMap = function(){
                 "lat": lonlat[1]
               };
               geodash.api.intend("viewChanged", delta, $scope);
+              //geodash.var.map.getOverlays().item(0).render();
+            }
+          },
+          postrender: function(e){
+            //geodash.var.map.getOverlays().item(0).render();
+            // NEeds to be updated https://github.com/openlayers/openlayers/blob/master/src/ol/overlay.js#L461
+            var popover = $("#popup").data("bs.popover");
+            if(geodash.util.isDefined(popover))
+            {
+              var tether = popover._tether;
+              if(geodash.util.isDefined(tether))
+              {
+                tether.position()
+              }
             }
           }
         },
@@ -81,6 +95,11 @@ geodash.directives.geodashMapMap = function(){
         "state": state,
         "listeners": listeners
       });
+      // Initialize JSTS
+      if(geodash.util.isDefined(jsts))
+      {
+        geodash.var.jsts_parser = new jsts.io.OL3Parser();
+      }
       // Initialize History
       //setTimeout(function(){geodash.api.intend("viewChanged", delta, $scope);}, 0);
       //////////////////////////////////////
