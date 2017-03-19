@@ -96,9 +96,12 @@ geodash.directives.geodashMapMap = function(){
         "listeners": listeners
       });
       // Initialize JSTS
-      if(geodash.util.isDefined(jsts))
+      if(typeof jsts != "undefined")
       {
-        geodash.var.jsts_parser = new jsts.io.OL3Parser();
+        if(! geodash.util.isDefined(geodash.var.jsts_parser))
+        {
+          geodash.var.jsts_parser = new jsts.io.OL3Parser();
+        }
       }
       // Initialize History
       //setTimeout(function(){geodash.api.intend("viewChanged", delta, $scope);}, 0);
