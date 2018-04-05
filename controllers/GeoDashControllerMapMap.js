@@ -123,62 +123,94 @@ geodash.controllers.GeoDashControllerMapMap = function(
     }
   });
 
-  $scope.$on("changeView", function(event, args)
-  {
+  $scope.$on("changeView", function(event, args) {
     console.log("Refreshing map...");
     if(angular.isDefined(extract("layer", args)))
     {
-      $scope.navigate.layer(args)
+      if(geodash.mapping_library == "ol3")
+      {
+        var layer = geodash.var.featurelayers[args["layer"]];
+        var v = geodash.var.map.getView();
+        geodash.var.map.beforeRender(ol.animation.pan({ duration: 1000, source: v.getCenter() }));
+        v.fit(layer.getSource().getExtent(), geodash.var.map.getSize());
+      }
+      else if(geodash.mapping_library == "leaflet")
+      {
+        geodash.var.map.fitBounds(geodash.var.featurelayers[args["layer"]].getBounds());
+      }
     }
     else if(angular.isDefined(extract("extent", args)))
     {
-      var newExtent = undefined;
       var extent = extract("extent", args);
-      if(angular.isString(extent))
+      if(angular.isString(extent) && extent == "initial")
       {
-        if(extent == "initial")
-        {
-          if(! geodash.var.map.getView().getAnimating())
-          {
-            geodash.navigate.start($scope);
-          }
-        }
-        else if(extent == "previous" || extent == "prev")
-        {
-          if(! geodash.var.map.getView().getAnimating())
-          {
-            geodash.navigate.back($scope);
-          }
-        }
-        else if(extent == "next" || extent == "forward")
-        {
-          if(! geodash.var.map.getView().getAnimating())
-          {
-            geodash.navigate.forward($scope);
-          }
-        }
+        extent = extract("initial_state.view.extent", event.currentScope);
       }
-      else
-      {
-        geodash.navigate.location({
-          "animate": extract("animate", args),
-          "duration": extract("duration", args),
-          "extent": geodash.normalize.extent(extent, {
-            "sourceProjection": "EPSG:4326",
-            "targetProjection": geodash.var.map.getView().getProjection().getCode()
-          })
-        });
-      }
+      setTimeout(function(){
+        var m = geodash.var.map;
+        var v = m.getView();
+        var newExtent = ol.proj.transformExtent(
+          extent,
+          "EPSG:4326",
+          v.getProjection()
+        );
+        v.fit(newExtent, m.getSize());
+      }, 0);
     }
     else
     {
-      geodash.navigate.location({
-        "animate": extract("animate", args),
-        "duration": extract("duration", args),
-        "lat": extract("lat", args),
-        "lon": extract("lon", args),
-        "zoom": extract("zoom", args)
-      });
+      var lat = geodash.normalize.float(extract("lat", args));
+      var lon = geodash.normalize.float(extract("lon", args));
+      var zoom = geodash.normalize.float(extract("zoom", args));
+      if(angular.isDefined(lat) && angular.isDefined(lon))
+      {
+        var v = geodash.var.map.getView();
+
+        var animationNames = extract("animations", args);
+        if(Array.isArray(animationNames))
+        {
+          var animations = [];
+          var duration = 2000;
+          var start = +new Date();
+          for(var i = 0; i < animationNames.length; i++)
+          {
+            var animationFn = extract(animationNames[i], geodash.animations);
+            if(angular.isDefined(animationFn))
+            {
+              animations.push(animationFn({
+                "duration": duration,
+                "start": start,
+                "source": v.getCenter(),
+                "resolution": 4 * v.getResolution()
+              }));
+            }
+          }
+          if(angular.isDefined(animations))
+          {
+            geodash.var.map.beforeRender.apply(geodash.var.map, animations);
+          }
+        }
+
+        v.setCenter(ol.proj.transform([lon, lat], extract("projection", args, "EPSG:4326"), v.getProjection()));
+        if(angular.isDefined(zoom))
+        {
+          v.setZoom(zoom);
+        }
+      }
+      else if(angular.isDefined(zoom))
+      {
+        var v = geodash.var.map.getView();
+        /*geodash.var.map.beforeRender(ol.animation.zoom({ duration: 250, source: v.getResolution() }));
+        var resolution = ---
+        ol.interaction.Interaction.zoomWithoutConstraints(
+          geodash.var.map,
+          v,
+          resolution,
+          false,
+          250
+        )*/
+        v.setZoom(zoom);
+      }
     }
   });
 
@@ -199,5 +231,4 @@ geodash.controllers.GeoDashControllerMapMap = function(
       );
     }
   });
-
 };

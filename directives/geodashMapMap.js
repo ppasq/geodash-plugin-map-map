@@ -34,55 +34,35 @@ geodash.directives.geodashMapMap = function(){
             }
           },
           moveend: function(e){
-            if(! geodash.var.map.getView().getAnimating())
-            {
-              console.log("In moveend, going to trigger viewChanged.");
-              var m = geodash.var.map;
-              var v = m.getView();
-              var c = v.getCenter();
-              var lonlat = ol.proj.transform(c, v.getProjection(), "EPSG:4326");
-              var delta = {
-                "extent": v.calculateExtent(m.getSize()),
-                "lon": lonlat[0],
-                "lat": lonlat[1]
-              };
-              geodash.api.intend("viewChanged", delta, $scope);
-              //geodash.var.map.getOverlays().item(0).render();
-            }
-          },
-          postrender: function(e){
-            //geodash.var.map.getOverlays().item(0).render();
-            // NEeds to be updated https://github.com/openlayers/openlayers/blob/master/src/ol/overlay.js#L461
-            var popover = $("#popup").data("bs.popover");
-            if(geodash.util.isDefined(popover))
-            {
-              var tether = popover._tether;
-              if(geodash.util.isDefined(tether))
-              {
-                tether.position()
-              }
-            }
+            var m = geodash.var.map;
+            var v = m.getView();
+            var c = v.getCenter();
+            var delta = {
+              "extent": v.calculateExtent(m.getSize()).join(","),
+              "location": {
+                "lat": c[1],
+                "lon": c[0]
+              },
+            };
+            geodash.api.intend("viewChanged", delta, $scope);
           }
         },
         "view": {
           "change:resolution": function(e){
-            if(! geodash.var.map.getView().getAnimating())
-            {
-              console.log("In change:resolution, going to trigger viewChanged.");
-              var m = geodash.var.map;
-              var v = m.getView();
-              var c = v.getCenter();
-              var delta = {
-                "extent": v.calculateExtent(m.getSize()),
-                "z": v.getZoom()
-              };
+            var m = geodash.var.map;
+            var v = m.getView();
+            var c = v.getCenter();
+            var delta = {
+              "extent": v.calculateExtent(m.getSize()).join(","),
+              "z": v.getZoom()
+            };
 
-              if(geodash.mapping_library == "ol3")
-              {
-                $("#popup").popover('destroy');
-              }
-              geodash.api.intend("viewChanged", delta, $scope);
+            if(geodash.mapping_library == "ol3")
+            {
+              $("#popup").popover('destroy');
             }
+
+            geodash.api.intend("viewChanged", delta, $scope);
           }
         }
       };
@@ -92,19 +72,8 @@ geodash.directives.geodashMapMap = function(){
       geodash.var.map = geodash.init.map_ol3({
         "id": element.attr("id"),
         "dashboard": dashboard,
-        "state": state,
         "listeners": listeners
       });
-      // Initialize JSTS
-      if(typeof jsts != "undefined")
-      {
-        if(! geodash.util.isDefined(geodash.var.jsts_parser))
-        {
-          geodash.var.jsts_parser = new jsts.io.OL3Parser();
-        }
-      }
-      // Initialize History
-      //setTimeout(function(){geodash.api.intend("viewChanged", delta, $scope);}, 0);
       //////////////////////////////////////
       // Base Layers
       if(extract("baselayers", dashboard, []).length > 0)
@@ -150,7 +119,6 @@ geodash.directives.geodashMapMap = function(){
       }
       else
       {
-        geodash.api.intend("geodash:maploaded", {}, $scope);
         /*setTimeout(function(){
           var loadedFeatureLayers = $.grep(state.view.featurelayers, function(layerID){
             var y = extract(layerID, geodash.var.featurelayers);
